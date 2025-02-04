@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Finance App</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link
+    href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet"/>
+    <style>
+        
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
+        body {
+            font-family: Poppins, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f7fa;
+        }
+
+        .container {
+            max-width: 400px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .balance {
+            text-align: center;
+            background: linear-gradient(135deg, #4e54c8, #8f94fb);
+            color: #fff;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .balance h2 {
+            font-size: 24px;
+            margin: 5px 0;
+        }
+
+        .summary {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+
+        .summary div {
+            background: #f5f5f581;
+            padding: 10px;
+            border-radius: 10px;
+            text-align: center;
+            flex: 1;
+            margin: 0 5px;
+            box-shadow: 0px 1px 1px silver;
+        }
+
+        .summary div:first-child {
+            margin-left: 0;
+            background-color: rgba(0, 128, 0, 0.071);
+        }
+
+        .summary div:last-child {
+            margin-right: 0;
+            background-color: rgba(255, 0, 0, 0.027);
+        }
+
+        .transactions {
+            margin-top: 20px;
+        }
+
+        .transactions h3 {
+            text-align: left;
+            margin-bottom: 10px;
+        }
+
+        .transactions ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .transactions li {
+            display: flex;
+            justify-content: space-between;
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 10px;
+            margin: 5px 0;
+            align-items: center;
+        }
+
+        .transactions li img {
+            width: 30px;
+            height: 30px;
+            margin-right: 10px;
+        }
+
+        .income {
+            color: green;
+        }
+
+        .expense {
+            color: red;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 20px;
+            background: #4e54c8;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            margin-top: 20px;
+            cursor: pointer;
+            transition: all 5s;
+        }
+
+        button:hover {
+            background: #6a72ff;
+            transition: all 5s;
+        }
+        .choice{
+            display: flex;
+            justify-content: space-evenly;
+            font-weight: 500;
+        }
+        input {
+            width: calc(100% - 20px);
+            margin: 10px auto;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-family: Poppins, sans-serif;
+            background-color: #dddddd37;
+        }
+/* 
+        .delete-btn, .edit-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .delete-btn, .edit-btn img {
+            width: 20px;
+            height: 20px;
+            color: red;
+        }
+
+        .delete-btn:hover img {
+            filter: brightness(0.8);
+        }
+
+        .edit-btn:hover img {
+            filter: brightness(1.2);
+        } */
+         .date{
+            color: silver;
+         }
+
+         .delete{
+            color: red;
+         }
+         .add-transaction{
+            font-size: 18px;
+            font-weight: 600;
+         }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="balance">
+            <span>Your Balance</span>
+            <h1>&#8358;<span id="balance">0</span></h1>
+        </div>
+        <div class="summary">
+            <div>
+                <p>Income</p>
+                <h3 class="income">&#8358;<span id="income">0</span></h3>
+            </div>
+            <div>
+                <p>Expenses</p>
+                <h3 class="expense">&#8358;<span id="expense">0</span></h3>
+            </div>
+        </div>
+
+        <input type="text" id="desc" placeholder="Description">
+        <input type="number" id="amount" placeholder="Amount">
+        <div class="choice">
+            <label><input type="radio" name="type" value="income" checked> Income</label>
+            <label><input type="radio" name="type" value="expense"> Expense</label>
+        </div>
+        <button class="add-transaction" onclick="addTransaction()">Add Transaction</button>
+
+        <div class="transactions">
+            <h3>Recent Transactions</h3>
+            <ul id="transactions"></ul>
+        </div>
+    </div>
+
+    <script>
+        let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+        let editId = null;
+        updateUI();
+
+        function addTransaction() {
+            let desc = document.getElementById('desc').value;
+            let amount = parseFloat(document.getElementById('amount').value);
+            let type = document.querySelector('input[name="type"]:checked').value;
+
+            if (!desc || isNaN(amount) || amount <= 0) return;
+
+            if (editId) {
+                const transactionIndex = transactions.findIndex(t => t.id === editId);
+                transactions[transactionIndex] = { id: editId, desc, amount, type, date: new Date().toLocaleDateString() };
+                editId = null;
+            } else {
+                transactions.push({ id: Date.now(), desc, amount, type, date: new Date().toLocaleDateString() });
+            }
+
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+            document.getElementById('desc').value = '';
+            document.getElementById('amount').value = '';
+            updateUI();
+        }
+
+        function updateUI() {
+            let income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+            let expense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+            let balance = income - expense;
+
+            document.getElementById('balance').innerText = balance.toFixed(2);
+            document.getElementById('income').innerText = income.toFixed(2);
+            document.getElementById('expense').innerText = expense.toFixed(2);
+
+            let transactionList = document.getElementById('transactions');
+            transactionList.innerHTML = transactions.map(t => `
+                <li>
+                    <div class="date">${t.date} </div> <span> ${t.desc} </span>
+                    <span class="${t.type}">${t.type === 'income' ? '' : ''} &#8358;${t.amount.toFixed(2)}</span>
+                    <span onclick="editTransaction(${t.id})">
+                        <i class="ri-edit-box-line"></i>
+                    </span>
+                    <span onclick="deleteTransaction(${t.id})">
+                        <i class="ri-delete-bin-line delete"></i>
+                    </span>
+                   
+                </li>
+            `).join('');
+        }
+
+        function deleteTransaction(id) {
+            transactions = transactions.filter(t => t.id !== id);
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+            updateUI();
+        }
+
+        function editTransaction(id) {
+            const transaction = transactions.find(t => t.id === id);
+            if (transaction) {
+                document.getElementById('desc').value = transaction.desc;
+                document.getElementById('amount').value = transaction.amount;
+                document.querySelector(`input[name="type"][value="${transaction.type}"]`).checked = true;
+                editId = id;
+            }
+        }
+    </script>
+</body>
+</html>
